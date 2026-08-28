@@ -16,6 +16,7 @@ button{font-family:inherit;cursor:pointer;border:none;background:none;color:inhe
 input,textarea{font-family:inherit;font-size:14px;border:2.5px solid var(--line);border-radius:14px;padding:10px 12px;outline:none;background:#fff}
 input:focus,textarea:focus{border-color:var(--rose)}
 .wrap{max-width:760px;margin:0 auto;padding:14px 14px 90px}
+.wrap{transform-origin:top center}
 .title{font-family:"Ma Shan Zheng","ZCOOL KuaiLe",cursive;font-size:34px;color:var(--rose2);text-align:center;line-height:1.2}
 .sub{text-align:center;color:var(--mocha);font-size:13px;margin:2px 0 12px}
 .tabs{display:flex;gap:8px;justify-content:center;margin-bottom:12px}
@@ -38,7 +39,7 @@ input:focus,textarea:focus{border-color:var(--rose)}
 .wheel-box{display:flex;flex-direction:column;align-items:center;gap:12px}
 .wheel{position:relative;width:min(300px,80vw);height:min(300px,80vw);border-radius:50%;border:7px solid #fff;box-shadow:0 8px 24px rgba(246,94,132,.25);transition:transform 4.2s cubic-bezier(.12,.7,.1,1)}
 .wheel .seg{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px}
-.wheel .seg img{width:30px;height:30px}
+.wheel .seg img{width:30px;height:30px;transform:scale(1.3)}
 .wheel-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:64px;height:64px;border-radius:50%;background:#fff;border:5px solid #fff;box-shadow:0 4px 0 rgba(246,94,132,.35);font-family:"Ma Shan Zheng",cursive;font-size:20px;color:var(--rose2)}
 .needle{position:absolute;left:50%;top:-6px;transform:translateX(-50%) rotate(45deg);width:18px;height:18px;background:var(--rose2);border-radius:4px}
 /* 抽卡 */
@@ -89,6 +90,12 @@ input:focus,textarea:focus{border-color:var(--rose)}
 .menu-item .fi{width:52px;height:52px;margin:0 auto 6px;display:flex;align-items:center;justify-content:center}
 .menu-item .fi img{width:44px;height:44px}
 .menu-item .del{position:absolute;top:6px;right:8px;color:var(--mocha);font-size:14px}
+.img-row{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 8px;margin-bottom:8px}
+.img-row button{flex:0 0 44px;width:44px;height:44px;border-radius:12px;border:2px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center}
+.img-row button.on{border-color:var(--rose);background:var(--peach)}
+.img-row button img{width:32px;height:32px}
+.zoom-row{display:flex;gap:8px;margin-top:8px}
+.zoom-row .btn{flex:1;padding:8px}
 /* 设置/登录 */
 .set-row{display:flex;align-items:center;justify-content:space-between;background:#fff;border:2.5px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}
 .switch{width:46px;height:26px;border-radius:999px;background:#ffc9d8;position:relative;transition:background .2s}
@@ -166,6 +173,11 @@ input:focus,textarea:focus{border-color:var(--rose)}
       <textarea id="menuInput" rows="3" placeholder="一行一个，比如：&#10;麻辣烫&#10;寿司&#10;奶茶"></textarea>
       <button class="btn" onclick="addMenu()">添加</button>
     </div>
+    <div class="card">
+      <div class="foot-note" style="text-align:left;margin-bottom:4px">给新菜挑个图片（不挑就自动配）</div>
+      <div class="img-row" id="menuImgRow"></div>
+      <button class="btn soft" style="width:100%" onclick="pickEmoji='';renderImgRow()">自动配图</button>
+    </div>
     <div class="menu-list" id="menuList"></div>
   </section>
 
@@ -177,6 +189,12 @@ input:focus,textarea:focus{border-color:var(--rose)}
     </div>
     <div class="set-row"><div><b>可爱动效</b><br><small style="color:var(--mocha)">转盘和彩纸小动画</small></div><div class="switch on" id="swMotion" onclick="togglePref('motion')"></div></div>
     <div class="set-row"><div><b>提示音效</b><br><small style="color:var(--mocha)">转盘嗒嗒声和小音效</small></div><div class="switch on" id="swSound" onclick="togglePref('sound')"></div></div>
+    <div class="set-row"><div><b>画面缩放</b><br><small style="color:var(--mocha)">自动适应屏幕大小</small></div><div class="switch on" id="swZoom" onclick="toggleZoomAuto()"></div></div>
+    <div class="zoom-row">
+      <button class="btn soft" onclick="zoomBy(-0.1)">缩小</button>
+      <button class="btn soft" onclick="zoomBy(0.1)">放大</button>
+      <button class="btn soft" onclick="zoomAuto()">适应屏幕</button>
+    </div>
     <button class="btn soft" style="width:100%" onclick="clearAll()">清空菜单</button>
   </section>
 </div>
@@ -189,8 +207,7 @@ input:focus,textarea:focus{border-color:var(--rose)}
     <input id="authUser" placeholder="用户名（2-20 位）">
     <input id="authPass" type="password" placeholder="密码（至少 6 位）">
     <button class="btn" id="authBtn" onclick="doAuth()">登录 ♡</button>
-    <div class="note">账户数据将存储至云端（Supabase），换设备也能接着用</div>
-    <button class="btn soft" onclick="guestIn()">先随便逛逛（数据只存本机）</button>
+    <div class="note">账户数据将存储至云端（Supabase）· 登录状态保持 12 小时，之后自动退出</div>
   </div>
 </div>
 
@@ -218,6 +235,7 @@ let state = { beans: 15, menu: [], prefs: { sound: true, motion: true }, history
 let user = null;
 let view = "home", mode = "roulette", city = "shanghai", plat = "meituan";
 let pool = [], spinning = false, overlayCount = 0, revealed = 0, best = null, cards = [];
+let pickEmoji = "", zoomAuto = true, zoomLevel = 1;
 
 function $(id){ return document.getElementById(id); }
 function emojiChar(code){ return String.fromCodePoint(parseInt(code.replace(/-fe0f$/,""), 16)); }
@@ -230,9 +248,20 @@ function toast(msg){ const t = document.createElement("div"); t.className = "toa
 function saveLocal(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 function loadLocal(){ try{ const s = JSON.parse(localStorage.getItem(LS_KEY) || "null"); if(s){ state = { beans:15, menu:[], prefs:{sound:true,motion:true}, history:[], ...s }; } }catch(e){} }
 function applyPrefs(){ document.body.classList.toggle("motion-off", !state.prefs.sound ? false : !state.prefs.motion); renderSwitches(); }
-function renderSwitches(){ $("swMotion").classList.toggle("on", state.prefs.motion); $("swSound").classList.toggle("on", state.prefs.sound); }
+function renderSwitches(){ $("swMotion").classList.toggle("on", state.prefs.motion); $("swSound").classList.toggle("on", state.prefs.sound); $("swZoom").classList.toggle("on", zoomAuto); }
 function togglePref(k){ state.prefs[k] = !state.prefs[k]; saveLocal(); persist(); applyPrefs(); }
 function clearAll(){ state.menu = []; saveLocal(); persist(); renderAll(); toast("菜单已清空"); }
+function fitZoom(){
+  if(!zoomAuto) return;
+  const scale = Math.max(0.5, Math.min(1, (window.innerHeight - 20) / 800, (window.innerWidth - 20) / 430));
+  zoomLevel = scale;
+  document.querySelector(".wrap").style.zoom = scale;
+  renderSwitches();
+}
+function zoomBy(d){ zoomAuto = false; zoomLevel = Math.max(0.5, Math.min(1.5, zoomLevel + d)); document.querySelector(".wrap").style.zoom = zoomLevel; renderSwitches(); }
+function zoomAutoFn(){ zoomAuto = true; fitZoom(); }
+function toggleZoomAuto(){ zoomAuto = !zoomAuto; if(zoomAuto) fitZoom(); renderSwitches(); }
+window.addEventListener("resize", fitZoom);
 
 /* 云端（Supabase，由部署器注入 SiteDB） */
 function cloudCfg(){ return (window.SiteDB && window.SiteDB.config) ? { url: SiteDB.config.url, key: SiteDB.config.key, siteId: SiteDB.config.siteId } : null; }
@@ -261,12 +290,12 @@ async function doAuth(){
     let res;
     if(authM === "login"){ res = await SiteDB.login(email, pass); }
     else { res = await SiteDB.register(email, uname, pass); }
-    if(res){ afterLogin(); toast("登录成功 ♡"); }
+    if(res){ localStorage.setItem("te_exp", String(Date.now() + 12 * 60 * 60 * 1000)); afterLogin(); toast("登录成功 ♡"); }
     else { toast("登录失败，请检查账号密码"); }
   }catch(e){ toast(e.message || "登录失败"); }
 }
 async function afterLogin(){ user = SiteDB.session(); $("authView").classList.add("hidden"); await cloudLoad(); renderAll(); renderAccount(); }
-function logout(){ if(window.SiteDB) SiteDB.logout(); user = null; saveLocal(); renderAll(); renderAccount(); openAuth(); }
+function logout(){ if(window.SiteDB) SiteDB.logout(); user = null; localStorage.removeItem("te_exp"); saveLocal(); renderAll(); renderAccount(); openAuth(); }
 function renderAccount(){
   if(user){ const nm = (user.user_metadata && user.user_metadata.username) || user.email; $("accountLine").textContent = "账号：" + nm; $("accountBtn").textContent = "退出登录"; $("accountBtn").onclick = logout; }
   else { $("accountLine").textContent = "还没有登录"; $("accountBtn").textContent = "登录 / 注册"; $("accountBtn").onclick = openAuth; }
@@ -287,7 +316,8 @@ function renderWheel(){
   const seg = 360 / foods.length;
   const stops = foods.map((f, i) => WHEEL_COLORS[i % WHEEL_COLORS.length] + " " + (i*seg) + "deg " + ((i+1)*seg) + "deg").join(",");
   wheel.style.background = "conic-gradient(from 0deg, " + stops + ")";
-  wheel.innerHTML = foods.map((f, i) => '<div class="seg" style="transform:translate(-50%,-50%) rotate(' + (i*seg + seg/2) + 'deg) translateY(-112px) rotate(' + (-(i*seg + seg/2)) + 'deg)">' + foodImg(f.emoji, 30) + "</div>").join("");
+  wheel.style.setProperty("--w", "min(300px,80vw)");
+  wheel.innerHTML = foods.map((f, i) => '<div class="seg" style="transform:translate(-50%,-50%) rotate(' + (i*seg + seg/2) + 'deg) translateY(calc(var(--w) * -0.36)) rotate(' + (-(i*seg + seg/2)) + 'deg)">' + foodImg(f.emoji, 30) + "</div>").join("");
   wheel.style.transform = "rotate(" + wheelRotation + "deg)";
 }
 function spinWheel(){
@@ -383,7 +413,7 @@ const BASE_RANK = {
   xiaohongshu: [["莓果酸奶碗","1f957"],["Gelato","1f368"],["糯叽叽麻薯","1f361"],["打卡咖啡","2615"],["波波奶茶","1f9cb"],["舒芙蕾","1f967"],["韩式炸鸡","1f357"],["贝果","1f96f"],["关东煮","1f362"],["桂花酒酿","1f379"]]
 };
 function buildRank(){
-  $("cityRow").innerHTML = CITIES.map(c => '<button class="' + (c[0]===city?"on":"") + '" onclick="setCity(\'' + c[0] + '\')">' + c[1] + "</button>").join("");
+  $("cityRow").innerHTML = '<button class="' + (locating?"on":"") + '" onclick="locateCity()">' + (locating ? "定位中…" : "📍 定位") + "</button>" + CITIES.map(c => '<button class="' + (c[0]===city?"on":"") + '" onclick="setCity(\'' + c[0] + '\')">' + c[1] + "</button>").join("");
   $("platRow").innerHTML = PLATS.map(p => '<button class="' + (p[0]===plat?"on":"") + '" onclick="setPlat(\'' + p[0] + '\')">' + p[1] + "</button>").join("");
   const specials = CITY_SPECIALS[city];
   const list = BASE_RANK[plat].map((item, i) => i < specials.length ? [specials[i][0], specials[i][1]] : item);
@@ -392,6 +422,22 @@ function buildRank(){
     const done = state.menu.some(m => m.name === item[0]);
     return '<div class="rank-item"><div class="rk">' + (i+1) + '</div><div class="fi">' + foodImg(item[1], 30) + "</div><div class=\"nm\">" + item[0] + '</div><div class="heat">🔥' + (heat/10000).toFixed(1) + "w</div><button class=\"add" + (done?" done":"") + "\" onclick=\"addFromRank('" + item[0].replace(/'/g,"") + "','" + item[1] + "',this)\">" + (done?"已加":"＋ 加入") + "</button></div>";
   }).join("");
+}
+let locating = false;
+function locateCity(){
+  if(!navigator.geolocation){ toast("浏览器不支持定位，请手动选择"); return; }
+  locating = true; buildRank();
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try{
+      const r = await fetch("https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=" + pos.coords.latitude + "&longitude=" + pos.coords.longitude + "&localityLanguage=zh");
+      const data = await r.json();
+      const name = String(data.city || data.locality || "");
+      const hit = CITIES.find(c => name.includes(c[1]) || c[1].includes(name));
+      if(hit){ city = hit[0]; toast("定位到 " + hit[1] + " ♡"); }
+      else toast(name ? "定位到 " + name + "，暂无专属榜单" : "未能识别城市");
+    }catch(e){ toast("定位成功，识别城市失败"); }
+    locating = false; buildRank();
+  }, () => { locating = false; buildRank(); toast("定位失败，请手动选择"); }, { timeout: 8000 });
 }
 function setCity(c){ city = c; buildRank(); }
 function setPlat(p){ plat = p; buildRank(); }
@@ -406,9 +452,14 @@ function addFromRank(name, emoji, btn){
 function addMenu(){
   const raw = $("menuInput").value.split(/[\n,，、;；]+/).map(s => s.trim()).filter(Boolean);
   if(!raw.length){ toast("先写点想吃的东西"); return; }
-  raw.forEach(n => { if(!state.menu.some(m => m.name === n)) state.menu.unshift({ name: n, emoji: guessEmoji(n), category: "其他" }); });
+  raw.forEach(n => { if(!state.menu.some(m => m.name === n)) state.menu.unshift({ name: n, emoji: pickEmoji || guessEmoji(n), category: "其他" }); });
   $("menuInput").value = "";
+  pickEmoji = "";
   persist(); renderAll(); toast("加好啦 ♡");
+}
+function renderImgRow(){
+  const keys = Object.keys(FOOD_SVGS).slice(0, 49);
+  $("menuImgRow").innerHTML = keys.map(k => '<button class="' + (pickEmoji===k?"on":"") + '" onclick="pickEmoji=\'' + k + '\';renderImgRow()">' + foodImg(k, 32) + "</button>").join("");
 }
 function guessEmoji(name){
   const map = [["火锅","1f372"],["面|粉|米线|螺蛳","1f35c"],["饭|米","1f35a"],["寿司|日料","1f363"],["汉堡","1f354"],["炸鸡|鸡","1f357"],["饺|包","1f95f"],["奶茶|茶","1f9cb"],["咖啡","2615"],["甜|蛋糕|冰","1f370"],["沙拉|酸奶|碗","1f957"],["烧烤|串","1f962"],["水果|果","1f353"]];
@@ -428,7 +479,14 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => setView
 loadLocal(); applyPrefs();
 setView("home"); setMode("roulette"); buildRank(); renderAll();
 authMode("login");
-if(window.SiteDB && SiteDB.session()){ afterLogin(); }
+if(window.SiteDB && SiteDB.session()){
+  const exp = Number(localStorage.getItem("te_exp") || 0);
+  if(exp >= Date.now()){ afterLogin(); }
+  else { SiteDB.logout(); localStorage.removeItem("te_exp"); openAuth(); }
+} else {
+  openAuth();
+}
+fitZoom(); renderImgRow();
 /* 天空光束背景（十连） */
 (function initBeams(){
   let h = "";
