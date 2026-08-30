@@ -203,7 +203,6 @@ input:focus,textarea:focus{border-color:var(--rose)}
   <div class="box">
     <h2>今天吃什么</h2>
     <div class="seg"><button id="segLogin" class="on" onclick="authMode('login')">登录</button><button id="segReg" onclick="authMode('reg')">注册</button></div>
-    <input id="authEmail" type="email" placeholder="邮箱">
     <input id="authUser" placeholder="用户名（2-20 位）">
     <input id="authPass" type="password" placeholder="密码（至少 6 位）">
     <button class="btn" id="authBtn" onclick="doAuth()">登录 ♡</button>
@@ -282,10 +281,18 @@ function persist(){ saveLocal(); cloudSave(); }
 function openAuth(){ $("authView").classList.remove("hidden"); }
 function guestIn(){ $("authView").classList.add("hidden"); }
 let authM = "login";
-function authMode(m){ authM = m; $("segLogin").classList.toggle("on", m==="login"); $("segReg").classList.toggle("on", m==="reg"); $("authBtn").textContent = m==="login" ? "登录 ♡" : "注册并登录 ♡"; $("authUser").style.display = m==="login" ? "none" : "block"; }
+function authMode(m){ authM = m; $("segLogin").classList.toggle("on", m==="login"); $("segReg").classList.toggle("on", m==="reg"); $("authBtn").textContent = m==="login" ? "登录 ♡" : "注册并登录 ♡"; }
+function usernameToEmail(name){
+  let local = "";
+  for (const ch of name) local += /[A-Za-z0-9]/.test(ch) ? ch : "_";
+  let h = 0;
+  for (const ch of name) h = (h * 31 + ch.codePointAt(0)) >>> 0;
+  return local.slice(0, 32) + "_" + h.toString(36) + "@today.local";
+}
 async function doAuth(){
-  const email = $("authEmail").value.trim(), pass = $("authPass").value, uname = $("authUser").value.trim();
-  if(!email || !pass || (authM==="reg" && !uname)){ toast("请填完整信息"); return; }
+  const uname = $("authUser").value.trim(), pass = $("authPass").value;
+  if(!uname || !pass){ toast("请填完整信息"); return; }
+  const email = usernameToEmail(uname);
   try{
     let res;
     if(authM === "login"){ res = await SiteDB.login(email, pass); }
